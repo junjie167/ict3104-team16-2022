@@ -22,7 +22,7 @@ class IModel:
         return self.__progress_callback;
 
     @progress_callback.setter
-    def __set_progress_callback(self, callback: CallbackType):
+    def progress_callback(self, callback: CallbackType):
         callback_params = signature(callback).parameters
         if len(callback_params) != 2:
             raise TypeError("callback must have 2 parameters")
@@ -45,7 +45,7 @@ class IModel:
         return self.__torch_model
 
     @model.setter
-    def __set_model(self, model: nn.Module):
+    def model(self, model: nn.Module):
         if not isinstance(model, nn.Module):
             raise TypeError(f"expected torch model, got {type(model)}")
         self.__torch_model = model;
@@ -56,7 +56,7 @@ class IModel:
         return self.__directory
     
     @output_directory.setter
-    def __set_output_directory(self, dir: str):
+    def output_directory(self, dir: str):
         self.__directory = dir
 
     def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader):
