@@ -129,5 +129,6 @@ dmypy.json
 .pyre/
 
 *.mp4
+*.vtt
 
 /data/pretrained_model/
