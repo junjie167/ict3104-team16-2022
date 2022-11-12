@@ -58,9 +58,10 @@ class HOI_PDAN(IModel):
 
             if best_map < val_map:
                 best_map = val_map
-                torch.save(self.model.state_dict(),'./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
-                torch.save(self.model,'./'+model_algo+'/model_epoch_'+str(self.lr)+'_'+str(epoch))
-                print('save here:','./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
+                # torch.save(self.model.state_dict(),'./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
+                # torch.save(self.model,'./'+model_algo+'/model_epoch_'+str(self.lr)+'_'+str(epoch))
+                # print('save here:','./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
+                yield self.model
 
     def infer(self, dataloader: DataLoader):
         pass

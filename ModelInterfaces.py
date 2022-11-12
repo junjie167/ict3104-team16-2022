@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Generator
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from inspect import signature
@@ -59,7 +59,16 @@ class IModel:
     def output_directory(self, dir: str):
         self.__directory = dir
 
-    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader):
+    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader) -> Generator[nn.Module]:
+        """
+            Train the model using `train_dataloader` to load training set
+            and `val_dataloader` to load testing/validation set.\n
+            After each iteration, it will return a model snapshot; use a for-loop to wait for an iteration to complete.
+            ```py
+            for model_snapshot in my_IModel_object.train(...):
+                torch.save(model_snapshot, '/path/model_epoch')
+            ```
+        """
         raise NotImplementedError("Training Interface Method Not Implemented")
     
     def infer(self, dataloader: DataLoader):
