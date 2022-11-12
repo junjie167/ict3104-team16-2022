@@ -59,10 +59,11 @@ class IModel:
     def output_directory(self, dir: str):
         self.__directory = dir
 
-    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader) -> Generator[nn.Module]:
+    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, epoch_range: range = range(50)) -> Generator[nn.Module, None, None]:
         """
             Train the model using `train_dataloader` to load training set
             and `val_dataloader` to load testing/validation set.\n
+            `epoch_range` defines the starting and ending epoch number e.g. `range(35,50)`. Default `range(50)`\n
             After each iteration, it will return a model snapshot; use a for-loop to wait for an iteration to complete.
             ```py
             for model_snapshot in my_IModel_object.train(...):
