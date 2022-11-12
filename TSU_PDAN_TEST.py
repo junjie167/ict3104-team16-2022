@@ -9,7 +9,12 @@ parser.add_argument('-batch_size', type=str, default='1')
 parser.add_argument('-num_classes', type=str, default='51')
 args = parser.parse_args()
 
-sys.argv = sys.argv[0:1] + ["-batch_size", args.batch_size]
+sys.argv = sys.argv[0:1] + [
+    "-batch_size", args.batch_size,
+    "-APtype", "map",
+    "-num_classes", args.num_classes,
+    "-model", "PDAN"
+]
 from TSU_PDAN import HOI_PDAN
 from HOI.smarthome_i3d_per_video import TSU as Dataset
 from HOI.smarthome_i3d_per_video import TSU_collate_fn as collate_fn
@@ -30,6 +35,9 @@ if len(args.JSON) > 0:
 
     modelrunner = HOI_PDAN()
     modelrunner.PDAN_training_parameters()
+    modelrunner.train(
+        train_dataloader=dataloader, val_dataloader=val_dataloader
+    )
 
 else:
     raise argparse.ArgumentError("Missing json file. Specify with -JSON")
