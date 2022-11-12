@@ -12,7 +12,6 @@ import io
 import base64
 
 
-
 def getVideoList():
     video_folder = os.listdir('Data_Storage/Videos')
     list_of_video = {}

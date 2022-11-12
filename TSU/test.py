@@ -90,14 +90,14 @@ if args.dataset == 'TSU':
     classes=51
     
     if split_setting =='CS':
-        train_split = './data/smarthome_CS_51.json'
-        test_split = './data/smarthome_CS_51.json'
+        train_split = './Data_Storage/smarthome_CS_51.json'
+        test_split = './Data_Storage/smarthome_CS_51.json'
         
     elif split_setting =='CV':
-        train_split = './data/smarthome_CV_51.json'
-        test_split = './data/smarthome_CV_51.json'
+        train_split = './Data_Storage/smarthome_CV_51.json'
+        test_split = './Data_Storage/smarthome_CV_51.json'
     
-    rgb_root = 'C:/Users/ngjun/3104/TSU/TSUProj/pipline/data/RGB_i3d_16frames_64000_SSD'
+    rgb_root = '/Users/junjie/Documents/3104/RGB_i3d_16frames_64000_SSD'
     skeleton_root='/skeleton/feat/Path/' # 
 
 def sigmoid(x):
