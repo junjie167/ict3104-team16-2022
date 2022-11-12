@@ -73,7 +73,15 @@ class IModel:
         raise NotImplementedError("Training Interface Method Not Implemented")
     
     def infer(self, dataloader: DataLoader):
+        """
+            Runs inferences on the provided i3D-extracted videos `dataloader`, generates a JSON report
+            in a similar structure like the original TSU JSON files.
+        """
         raise NotImplementedError("Inference Interface Method Not Implemented")
 
     def evaluate(self, dataloader: DataLoader):
+        """
+            calculates mAP score and average class predictions of the model
+            given the data subset in `dataloader`
+        """
         raise NotImplementedError("Evaluation Interface Method Not Implemented")
