@@ -2,15 +2,17 @@ import shutil
 import zipfile as zipfile
 import json
 
-class DataExploration:
+class UploadData:
     
     def upload_data(fn, fc):
         identified_filetype = ""
+        identified_file = ""
         if fn.endswith('.zip'):
             fn = fc.selected_filename.replace('.zip', '')
             with zipfile.ZipFile(fc.selected_path+"\\"+fc.selected_filename, 'r') as zipObj:
                 zip_content = zipObj.namelist()
                 for zip_content_item in zip_content:
+                    identified_file += zip_content_item + ","
                     if zip_content_item.endswith('.mp4'):
                         zipObj.extract(zip_content_item, 'Data_Storage/Videos')
                         if identified_filetype != "":
@@ -42,21 +44,21 @@ class DataExploration:
                         else:
                             identified_filetype += "Others"
         else:
-            identified_filetype = ""
+            identified_file = fc.selected_filename
             if fn.endswith('.mp4'):  
                 shutil.copyfile(fc.selected_path+"/"+fc.selected_filename, 'Data_Storage/Videos/'+fc.selected_filename)
-                identified_filetype += ", Videos" 
+                identified_filetype = "Videos" 
             elif fn.endswith('.csv') or fn.endswith('.xlsx') or fn.endswith('.txt'):
                 shutil.copyfile(fc.selected_path+"/"+fc.selected_filename, 'Data_Storage/Dataset/'+fc.selected_filename)
-                identified_filetype += "Dataset"    
+                identified_filetype = "Dataset"    
             elif fn.endswith('.file'):
                 shutil.copyfile(fc.selected_path+"/"+fc.selected_filename, 'Data_Storage/Pretrained_Models/'+fc.selected_filename)
-                identified_filetype += "Pretrained_Model"
+                identified_filetype = "Pretrained_Model"
             elif fn.endswith('.json') or fn.endswith('.vtt'):
                 shutil.copyfile(fc.selected_path+"/"+fc.selected_filename, 'Data_Storage/Captions/'+fc.selected_filename)
-                identified_filetype += ", Captions"
+                identified_filetype = "Captions"
             else:
                 shutil.copyfile(fc.selected_path+"/"+fc.selected_filename, 'Data_Storage/'+fc.selected_filename)
-                identified_filetype += ", Others"
+                identified_filetype = "Others"
 
-        return identified_filetype
+        return identified_filetype, identified_file
