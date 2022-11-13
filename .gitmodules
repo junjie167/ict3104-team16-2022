@@ -2,3 +2,7 @@
 	path = Toyota_Smarthome
 	url = https://github.com/PixlRainbow/Toyota_Smarthome.git
 	branch = main
+[submodule "feature_extractor"]
+	path = feature_extractor
+	url = https://github.com/PixlRainbow/video_features.git
+	branch = master
