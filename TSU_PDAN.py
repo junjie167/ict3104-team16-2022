@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.optim as optim
 import torch
+import numpy as np
 from ModelInterfaces import IModel
 
 # TODO: fix TSU's code being hard-coded to check command line arguments

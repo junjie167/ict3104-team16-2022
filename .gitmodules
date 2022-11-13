@@ -1,0 +1,4 @@
+[submodule "TSU_PDAN"]
+	path = Toyota_Smarthome
+	url = https://github.com/PixlRainbow/Toyota_Smarthome.git
+	branch = main
