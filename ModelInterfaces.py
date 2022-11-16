@@ -59,7 +59,8 @@ class IModel:
     def output_directory(self, dir: str):
         self.__directory = dir
 
-    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, epoch_range: range = range(50)) -> Generator[nn.Module, None, None]:
+    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, epoch_range: range = range(50), use_tqdm: str = "notebook") \
+        -> Generator[nn.Module, None, None]:
         """
             Train the model using `train_dataloader` to load training set
             and `val_dataloader` to load testing/validation set.\n
@@ -69,6 +70,8 @@ class IModel:
             for model_snapshot in my_IModel_object.train(...):
                 torch.save(model_snapshot, '/path/model_epoch')
             ```
+            `use_tqdm` allows you to specify whether you want to have HTML-styled progress bar ("notebook")
+            or in-console progress bar ("console"), or no progress bar at all (None). Default "notebook".
         """
         raise NotImplementedError("Training Interface Method Not Implemented")
     

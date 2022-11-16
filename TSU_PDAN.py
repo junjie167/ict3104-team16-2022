@@ -26,6 +26,8 @@ class HOI_PDAN(IModel):
             input_channel = 1024
         else:
             raise ValueError("mode may only be skeleton or rgb")
+        
+        self.__num_classes__ = num_classes
 
         model = HOI.models.PDAN(num_stages=1, num_layers=5, num_f_maps=num_channel, dim=input_channel, num_classes=num_classes)
         model = nn.DataParallel(model)
@@ -33,26 +35,40 @@ class HOI_PDAN(IModel):
         self.model = model
 
         self.output_directory = "./PDAN/"
+        self.epoch = 0
 
     def PDAN_training_parameters(self, lr: float = 0.0002, comp_info: str = "TSU_CS_RGB_PDAN"):
         """Set training parameters specific to Toyota HOI"""
         self.lr = lr
         self.comp_info = comp_info
-        self.start_epoch = start_epoch
 
-    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, epoch_range: range = range(50)):
+    def train(self, train_dataloader: DataLoader, val_dataloader: DataLoader, epoch_range: range = range(50), use_tqdm: str = "notebook"):
         criterion = nn.NLLLoss(reduce=False)
         optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         lr_sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=8, verbose=True)
         model_algo = "PDAN"
         best_map = 0.0
+        dataloaders = {
+            "train": train_dataloader,
+            "test": val_dataloader
+        }
+
+        from tqdm import tqdm
+        from tqdm.notebook import tqdm_notebook
         for epoch in epoch_range:
             # print('Epoch {}/{}'.format(epoch, epochs - 1))
             # print('-' * 10)
+            # due to a bug in TQDM, the progress bars must be re-constructed to reset them to zero
+            if use_tqdm == "notebook":
+                dataloaders["train"] = tqdm_notebook(train_dataloader, unit='batch', desc='training', leave=False)
+                dataloaders["test"] = tqdm_notebook(val_dataloader, unit='batch', desc='validating', leave=False)
+            elif use_tqdm == "console":
+                dataloaders["train"] = tqdm(train_dataloader, unit='batch', desc='training', leave=False)
+                dataloaders["test"] = tqdm(val_dataloader, unit='batch', desc='validating', leave=False)
 
             probs = []
-            train_map, train_loss = HOI.train.train_step(self.model, 0, optimizer, train_dataloader, epoch)
-            prob_val, val_loss, val_map = HOI.train.val_step(self.model, 0, val_dataloader, epoch)
+            train_map, train_loss = HOI.train.train_step(self.model, 0, optimizer, dataloaders["train"], epoch)
+            prob_val, val_loss, val_map = HOI.train.val_step(self.model, 0, dataloaders["test"], epoch)
             probs.append(prob_val)
             lr_sched.step(val_loss)
 
@@ -63,7 +79,7 @@ class HOI_PDAN(IModel):
                 # torch.save(self.model.state_dict(),'./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
                 # torch.save(self.model,'./'+model_algo+'/model_epoch_'+str(self.lr)+'_'+str(epoch))
                 # print('save here:','./'+model_algo+'/weight_epoch_'+str(self.lr)+'_'+str(epoch))
-                self.start_epoch += 1
+                self.epoch = epoch
                 yield self.model
 
     def infer(self, dataloader: DataLoader):
@@ -80,7 +96,7 @@ class HOI_PDAN(IModel):
             json.dump(results, fp=logfile)
 
     def evaluate(self, dataloader: DataLoader):
-        full_probs, epoch_loss, mAP_acc = HOI.train.val_step(self.model, 0, dataloader, self.start_epoch)
+        full_probs, epoch_loss, mAP_acc = HOI.train.val_step(self.model, 0, dataloader, self.epoch)
         return mAP_acc
     
     def __compact_result__(self, per_class_probs_per_frame: np.ndarray) -> list[dict]:
