@@ -75,10 +75,11 @@ class IModel:
         """
         raise NotImplementedError("Training Interface Method Not Implemented")
     
-    def infer(self, dataloader: DataLoader):
+    def infer(self, dataloader: DataLoader) -> str:
         """
             Runs inferences on the provided i3D-extracted videos `dataloader`, generates a JSON report
-            in a similar structure like the original TSU JSON files.
+            in a similar structure like the original TSU JSON files.\n
+            Returns the path at which the report was saved.
         """
         raise NotImplementedError("Inference Interface Method Not Implemented")
 

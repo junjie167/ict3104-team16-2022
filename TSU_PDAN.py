@@ -92,9 +92,16 @@ class HOI_PDAN(IModel):
             } \
                 for video_name, values in results.items()
         }
-        # TODO: Change path
-        with open("logga.json", mode="w") as logfile:
+        
+        
+        from time import time
+        from pathlib import Path
+        # save to configured output_directory, use epoch time as label
+        filename = Path(self.output_directory, "{0}smarthome_{1}.json".format(int(time())))
+        with open(filename, mode="w") as logfile:
             json.dump(results, fp=logfile)
+
+        return str(filename.resolve())
 
     def evaluate(self, dataloader: DataLoader):
         full_probs, epoch_loss, mAP_acc = HOI.train.val_step(self.model, 0, dataloader, self.epoch)
