@@ -6,6 +6,9 @@ import sys
 import torch
 import csv
 import cv2
+import wandb
+import random
+
 
 
 def str2bool(v):
@@ -40,6 +43,7 @@ parser.add_argument('-kernelsize', type=str, default='False')
 parser.add_argument('-feat', type=str, default='False')
 parser.add_argument('-split_setting', type=str, default='CS')
 parser.add_argument('-video', type=str, default='undefined')
+parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
 args = parser.parse_args()
 
 import torch
@@ -103,6 +107,8 @@ if args.dataset == 'TSU':
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def testfunc():
+    return 111
 
 def load_data_rgb_skeleton(train_split, val_split, root_skeleton, root_rgb):
     # Load Data
@@ -258,7 +264,19 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
     "Drink.From_glass", "Lay_down", "Drink.From_can", "Write", "Breakfast", "Breakfast.Spread_jam_or_butter",
     "Breakfast.Cut_bread", "Breakfast.Eat_at_table", "Breakfast.Take_ham", "Clean_dishes.Dry_up", "Wipe_table",
     "Cook", "Cook.Cut", "Cook.Use_stove", "Cook.Stir", "Cook.Use_oven", "Clean_dishes.Clean_with_water",
-    "Use_tablet", "Use_glasses", "Pour.From_can"]    
+    "Use_tablet", "Use_glasses", "Pour.From_can"]   
+    actAccArr = []
+    # getting model name from argument file path
+    modelPath = args.load_model.replace('\\', '/')
+    model_name = modelPath.rsplit('/', 1)[-1]
+    print("MODEL_NAME",model_name)
+    wandb.login()
+    wandb.init(
+        project="PYNB",
+        name=f"{model_name} Metrics",
+        config={
+            "model":model_name
+    })
     writer = csv.writer(file)  
     # Write Rows for Model Precision 
     writer.writerow(["Mean Average Precision of Model: ", val_map.item()])
@@ -270,6 +288,9 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
         if (actAccList[i] > 0):
             acc_dict[activityArr[i]] = actAccList[i]
             writer.writerow([activityArr[i], actAccList[i]])
+            actAccArr.append(actAccList[i])
+
+    
 
     # Write Rows for Training Section (loss, epoch,etc?)
     writer.writerow([])
@@ -302,6 +323,11 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
 
     file.close()
     print("csv file output to /result folder")
+    data = [[label, val] for (label, val) in zip(activityArr, actAccArr)]
+    table = wandb.Table(data=data, columns = ["Activity", "Mean Precision"])
+    wandb.log({"my_bar_chart_id" : wandb.plot.bar(table, "Activity",
+                                "Mean Precision", title=f"{model_name} Precision on Activities")})
+    wandb.finish()
     return
     
 def val_step(model, gpu, dataloader, epoch):
@@ -361,9 +387,47 @@ if __name__ == '__main__':
     model = torch.load(args.load_model)
     prob_val, val_loss, val_map, actAccuracy,activityIndexes = val_step(model, 0, dataloaders['val'], 0) 
     numFrames = getNumFrames(args.video)
-    # print("numframes",numFrames)
+    # # print("numframes",numFrames)
     output_csvResults(activityIndexes,numFrames,val_map,actAccuracy)
-    
+
+
+
+    # wandb.login()
+    # wandb.init(
+    #     project="PYNB",
+    #     name=f"{args.model}",
+    #     config={
+    #         "model":args.model
+    # })
+    # activityArr = ["Enter", "Walk","Make_coffee", "Get_water", "Make_coffee", "Use_Drawer", "Make_coffee.Pour_grains", 
+    # "Use_telephone", "Leave", "Put_something_on_table", "Take_something_off_table" , "Pour.From_kettle", 
+    # "Stir_coffee/tea", "Drink.From_cup", "Dump_in_trash", "Make_tea", "Make_tea.Boil_water", "Use_cupboard",
+    # "Make_tea.Insert_tea_bag" , "Read", "Take_pills", "Use_fridge", "Clean_dishes", "Clean_dishes.Put_something_in_sink",
+    # "Eat_snack", "Sit_down", "Watch_TV", "Use_laptop", "Get_up", "Drink.From_bottle", "Pour.From_bottle",
+    # "Drink.From_glass", "Lay_down", "Drink.From_can", "Write", "Breakfast", "Breakfast.Spread_jam_or_butter",
+    # "Breakfast.Cut_bread", "Breakfast.Eat_at_table", "Breakfast.Take_ham", "Clean_dishes.Dry_up", "Wipe_table",
+    # "Cook", "Cook.Cut", "Cook.Use_stove", "Cook.Stir", "Cook.Use_oven", "Clean_dishes.Clean_with_water",
+    # "Use_tablet", "Use_glasses", "Pour.From_can"]   
+    # actAccArr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+    # ,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
+    # 41,42,43,44,45,46,47,48,49,50,51]
+    # labels = ["one","two","three"]
+    # values = [1,2,3]
+    # print("lenactarr",len(activityArr))
+    # print("lenAccuracyarr",len(actAccArr))
+    # data = [[label, val] for (label, val) in zip(activityArr, actAccArr)]
+    # table = wandb.Table(data=data, columns = ["Activity", "Mean Precision"])
+    # wandb.log({"my_bar_chart_id" : wandb.plot.bar(table, "label",
+    #                             "value", title="Custom Bar Chart")})
+    # data = [[label, val] for (label, val) in zip(labels, values)]
+    # table = wandb.Table(data=data, columns = ["Activity", "Mean Precision"])
+    # wandb.log({"my_bar_chart_id" : wandb.plot.bar(table, "Activity",
+    #                             "Mean Precision", title="Custom Bar Chart")})
+    # wandb.finish()
+
+ 
+
+
     
 
 
