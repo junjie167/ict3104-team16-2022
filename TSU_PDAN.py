@@ -57,8 +57,6 @@ class HOI_PDAN(IModel):
         from tqdm import tqdm
         from tqdm.notebook import tqdm_notebook
         for epoch in epoch_range:
-            # print('Epoch {}/{}'.format(epoch, epochs - 1))
-            # print('-' * 10)
             # due to a bug in TQDM, the progress bars must be re-constructed to reset them to zero
             if use_tqdm == "notebook":
                 dataloaders["train"] = tqdm_notebook(train_dataloader, unit='batch', desc='training', leave=False)
@@ -108,6 +106,14 @@ class HOI_PDAN(IModel):
         return mAP_acc
     
     def __compact_result__(self, per_class_probs_per_frame: np.ndarray, confidence_threshold: float) -> list[dict]:
+        """
+            This private function is called during inference.\n
+            This function extracts the class with the highest probability in each video frame,
+            and returns a sparse representation in a format similar to the TSU json files
+            (`smarthome_CS_51.json`, `smarthome_CV_51.json`).
+            This is to allow easy conversion to on-screen captions on the video player,
+            as WebVTT expects you to provide time ranges, not per-frame captions.
+        """
         # TODO: rewrite to show top 3
         actions = list()
         top_class = np.argmax(per_class_probs_per_frame, axis=1)
@@ -115,6 +121,9 @@ class HOI_PDAN(IModel):
             class_idx = np.where(top_class == class_id)[0]
             if(len(class_idx) == 0):
                 continue
+            # find contiguous regions where class_id is the top_class
+            # by looking for blocks of consecutive frame indexes
+            # see https://stackoverflow.com/a/7353335
             ranges = np.split(class_idx, np.where(np.diff(class_idx) != 1)[0]+1)
             for period in ranges:
                 mean_period_confidence = float(np.mean(per_class_probs_per_frame[period[0]:period[-1]+1, class_id]))
