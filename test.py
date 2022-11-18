@@ -272,7 +272,7 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
     print("MODEL_NAME",model_name)
     wandb.login()
     wandb.init(
-        project="PYNB",
+        project="HOIHUB_ModelEval",
         name=f"{model_name} Metrics",
         config={
             "model":model_name

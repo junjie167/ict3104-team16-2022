@@ -1,0 +1,77 @@
+{
+    "os": "Windows-10-10.0.19044-SP0",
+    "python": "3.9.13",
+    "heartbeatAt": "2022-11-18T15:30:26.479227",
+    "startedAt": "2022-11-18T15:30:25.684716",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "-dataset",
+        "TSU",
+        "-mode",
+        "rgb",
+        "-split_setting",
+        "CS",
+        "-model",
+        "PDAN",
+        "-train",
+        "False",
+        "-num_channel",
+        "512",
+        "-lr",
+        "0.0002",
+        "-kernelsize",
+        "3",
+        "-APtype",
+        "map",
+        "-batch_size",
+        "1",
+        "-comp_info",
+        "TSU_CS_RGB_PDAN",
+        "-load_model",
+        "data/pretrained_model/PDAN_TSU_RGB",
+        "-video",
+        "P02T01C06.mp4"
+    ],
+    "state": "running",
+    "program": "C:\\Users\\ngjun\\Downloads\\ict3104-team16-2022\\test.py",
+    "codePath": "test.py",
+    "git": {
+        "remote": "https://github.com/junjie167/ict3104-team16-2022.git",
+        "commit": "8fdb4330e8e6798d63707064a62d6f6e24363d24"
+    },
+    "email": "ngjunkiat968@gmail.com",
+    "root": "C:/Users/ngjun/Downloads/ict3104-team16-2022",
+    "host": "DESKTOP-UEULQDV",
+    "username": "ngjun",
+    "executable": "C:\\Users\\ngjun\\miniconda3\\envs\\ict3104\\python.exe",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 2592.0,
+        "min": 0.0,
+        "max": 2592.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2592.0,
+            "min": 0.0,
+            "max": 2592.0
+        }
+    ],
+    "disk": {
+        "total": 464.76855087280273,
+        "used": 442.90124130249023
+    },
+    "gpu": "GeForce GTX 1650 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "GeForce GTX 1650 Ti",
+            "memory_total": 4294967296
+        }
+    ],
+    "memory": {
+        "total": 15.790580749511719
+    }
+}
