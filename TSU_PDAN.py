@@ -35,7 +35,7 @@ class HOI_PDAN(IModel):
         model = model.cuda()
         self.model = model
 
-        self.output_directory = "./PDAN/"
+        self.output_directory = "./data/inference/PDAN/"
         self.epoch = 0
 
     def PDAN_training_parameters(self, lr: float = 0.0002, comp_info: str = "TSU_CS_RGB_PDAN"):
@@ -97,7 +97,7 @@ class HOI_PDAN(IModel):
         from time import time
         from pathlib import Path
         # save to configured output_directory, use epoch time as label
-        filename = Path(self.output_directory, "{0}smarthome_{1}.json".format(int(time())))
+        filename = Path(self.output_directory, "smarthome_{0}.json".format(int(time())))
         with open(filename, mode="w") as logfile:
             json.dump(results, fp=logfile)
 
