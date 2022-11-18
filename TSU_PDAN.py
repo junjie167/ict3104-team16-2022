@@ -83,12 +83,12 @@ class HOI_PDAN(IModel):
                 self.epoch = epoch
                 yield self.model
 
-    def infer(self, dataloader: DataLoader):
+    def infer(self, dataloader: DataLoader, confidence_threshold: float = 0.5):
         results = HOI.train.eval_model(self.model, dataloader)
         print("eval done, generating report")
         results = {
             video_name: {
-                "actions": self.__compact_result__(values[1])
+                "actions": self.__compact_result__(values[1], confidence_threshold)
             } \
                 for video_name, values in results.items()
         }
@@ -107,11 +107,9 @@ class HOI_PDAN(IModel):
         full_probs, epoch_loss, mAP_acc = HOI.train.val_step(self.model, 0, dataloader, self.epoch)
         return mAP_acc
     
-    def __compact_result__(self, per_class_probs_per_frame: np.ndarray) -> list[dict]:
+    def __compact_result__(self, per_class_probs_per_frame: np.ndarray, confidence_threshold: float) -> list[dict]:
         # TODO: rewrite to show top 3
-        # TODO: exclude low-confidence results?
         actions = list()
-        longest = 0
         top_class = np.argmax(per_class_probs_per_frame, axis=1)
         for class_id in range(self.__num_classes__):
             class_idx = np.where(top_class == class_id)[0]
@@ -119,14 +117,14 @@ class HOI_PDAN(IModel):
                 continue
             ranges = np.split(class_idx, np.where(np.diff(class_idx) != 1)[0]+1)
             for period in ranges:
-                if len(period) > longest:
-                    longest = len(period)
+                mean_period_confidence = float(np.mean(per_class_probs_per_frame[period[0]:period[-1]+1, class_id]))
+                if mean_period_confidence < confidence_threshold:
+                    continue
                 actions.append({
                     "class": class_id,
                     "start": int(period[0]),
                     "end": int(period[-1]),
-                    "confidence": float(np.mean(per_class_probs_per_frame[period[0]:period[-1]+1, class_id]))
+                    "confidence": mean_period_confidence
                 })
         actions.sort(key=lambda a: a["start"])
-        # print("longest john", longest)
         return actions
