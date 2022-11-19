@@ -4,6 +4,11 @@ import os
 import argparse
 import sys
 import torch
+import csv
+import cv2
+import random
+
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -36,6 +41,8 @@ parser.add_argument('-batch_size', type=str, default='False')
 parser.add_argument('-kernelsize', type=str, default='False')
 parser.add_argument('-feat', type=str, default='False')
 parser.add_argument('-split_setting', type=str, default='CS')
+parser.add_argument('-video', type=str, default='undefined')
+parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
 args = parser.parse_args()
 
 import torch
@@ -61,7 +68,7 @@ torch.cuda.manual_seed_all(SEED)
 random.seed(SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-print('Random_SEED!!!:', SEED)
+# print('Random_SEED!!!:', SEED)
 
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
@@ -99,6 +106,8 @@ if args.dataset == 'TSU':
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def testfunc():
+    return 111
 
 def load_data_rgb_skeleton(train_split, val_split, root_skeleton, root_rgb):
     # Load Data
@@ -238,7 +247,77 @@ def train_step(model, gpu, optimizer, dataloader, epoch):
 
     return train_map, epoch_loss
 
+def getNumFrames(videoName):
+    cap = cv2.VideoCapture("./data/video/" + videoName)
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    return length
 
+def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
+    file = open('./results/result.csv', 'w+', encoding='UTF8', newline='')
+    # file = open('./data/generatedAnnotations/{model_name}_{video_name}.csv'.format(model_name=model, video_name=video), 'w', encoding='UTF8', newline='')
+    activityArr = ["Enter", "Walk","Make_coffee", "Get_water", "Make_coffee", "Use_Drawer", "Make_coffee.Pour_grains", 
+    "Use_telephone", "Leave", "Put_something_on_table", "Take_something_off_table" , "Pour.From_kettle", 
+    "Stir_coffee/tea", "Drink.From_cup", "Dump_in_trash", "Make_tea", "Make_tea.Boil_water", "Use_cupboard",
+    "Make_tea.Insert_tea_bag" , "Read", "Take_pills", "Use_fridge", "Clean_dishes", "Clean_dishes.Put_something_in_sink",
+    "Eat_snack", "Sit_down", "Watch_TV", "Use_laptop", "Get_up", "Drink.From_bottle", "Pour.From_bottle",
+    "Drink.From_glass", "Lay_down", "Drink.From_can", "Write", "Breakfast", "Breakfast.Spread_jam_or_butter",
+    "Breakfast.Cut_bread", "Breakfast.Eat_at_table", "Breakfast.Take_ham", "Clean_dishes.Dry_up", "Wipe_table",
+    "Cook", "Cook.Cut", "Cook.Use_stove", "Cook.Stir", "Cook.Use_oven", "Clean_dishes.Clean_with_water",
+    "Use_tablet", "Use_glasses", "Pour.From_can"]   
+    actAccArr = []
+    # getting model name from argument file path
+    modelPath = args.load_model.replace('\\', '/')
+    model_name = modelPath.rsplit('/', 1)[-1]
+    print("MODEL_NAME",model_name)
+    writer = csv.writer(file)  
+    # Write Rows for Model Precision 
+    writer.writerow(["Mean Average Precision of Model: ", val_map.item()])
+    writer.writerow([])
+    acc_dict = {}
+    actAccList = actAccList_tnsr.numpy()
+    writer.writerow(["Activity","Average Class Prediction"])
+    for i in range(0, len(actAccList)):
+        if (actAccList[i] > 0):
+            acc_dict[activityArr[i]] = actAccList[i]
+            writer.writerow([activityArr[i], actAccList[i]])
+            actAccArr.append(actAccList[i])
+
+    
+
+    # Write Rows for Training Section (loss, epoch,etc?)
+    writer.writerow([])
+    writer.writerow(["Trained on","Train m-AP","Tested on","Prediction m-AP"])
+    # To be done
+
+    # Write Rows Video Frame data
+    writer.writerow([])
+    writer.writerow(["Event","Start_frame","End_frame","Video_Name","Prediction Accuracy for the video"])
+    # To be done
+    currentFrames = 0
+    endFrames = 0
+    framesPerIndex = numFrames/len(activityIndexes)
+    videoName = args.video.replace(".mp4","")
+    
+    for i in range(0, len(activityIndexes)):
+        if ((i < len(activityIndexes)-1) and (activityIndexes[i] == activityIndexes[i+1]) ):
+            endFrames += framesPerIndex
+        else:
+            endFrames += framesPerIndex
+            new_row = []
+            for action in acc_dict.keys():
+                if (activityArr[activityIndexes[i]] == action):
+                    new_row = [activityArr[activityIndexes[i]], (currentFrames), (endFrames),videoName,acc_dict[action]]
+                    break
+                else:
+                    new_row = [activityArr[activityIndexes[i]], (currentFrames),videoName, (endFrames),0.0]
+            writer.writerow(new_row)
+            currentFrames = endFrames
+
+    file.close()
+    print("csv file output to /result folder")
+
+    return
+    
 def val_step(model, gpu, dataloader, epoch):
     model.train(False)
     apm = APMeter()
@@ -261,6 +340,10 @@ def val_step(model, gpu, dataloader, epoch):
         error += err.data
         tot_loss += loss.data
 
+        activityIndexes = []
+        for i in range(1, len(probs.data.cpu().numpy()[0])):
+            activityIndexes.append(np.argmax(probs.data.cpu().numpy()[0][i]))
+
         probs = probs.squeeze()
 
         full_probs[other[0][0]] = probs.data.cpu().numpy().T
@@ -270,10 +353,11 @@ def val_step(model, gpu, dataloader, epoch):
 
     val_map = torch.sum(100 * apm.value()) / torch.nonzero(100 * apm.value()).size()[0]
     print('val-map:', val_map)
-    print(100 * apm.value())
+    activityAcc = 100 * apm.value()
+
     apm.reset()
 
-    return full_probs, epoch_loss, val_map
+    return full_probs, epoch_loss, val_map, activityAcc,activityIndexes
 
 
 if __name__ == '__main__':
@@ -288,53 +372,10 @@ if __name__ == '__main__':
     elif args.mode == 'rgb':
         dataloaders, datasets = load_data(train_split, test_split, rgb_root)
 
-        
-
-    # if args.train:
-    #     print('L299 args.train TRAINING MODEL...')
-    #     num_channel = args.num_channel
-    #     if args.mode == 'skeleton':
-    #         input_channnel = 256
-    #     else:
-    #         input_channnel = 1024
-
-    #     num_classes = classes
-    #     mid_channel=int(args.num_channel)
-
-
-    #     if args.model=="PDAN":
-    #         print("you are processing PDAN")
-    #         from models import PDAN as Net
-    #         model = Net(num_stages=1, num_layers=5, num_f_maps=mid_channel, dim=input_channnel, num_classes=classes)
-
-
-    #     model=torch.nn.DataParallel(model)
-
-    #     print("loading model..")
-    #     if args.load_model!= "False":
-    #         # entire model
-            
-    #         # model = torch.load(args.load_model,map_location=torch.device('cpu'))
-    #         model = torch.load(args.load_model)
-    #         # weight
-    #         # model.load_state_dict(torch.load(str(args.load_model)))
-
-    #     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    #     print('pytorch_total_params', pytorch_total_params)
-    #     print('num_channel:', num_channel, 'input_channnel:', input_channnel,'num_classes:', num_classes)
-    #     model.cuda()
-
-    #     criterion = nn.NLLLoss(reduce=False)
-    #     lr = float(args.lr)
-    #     print(lr)
-    #     optimizer = optim.Adam(model.parameters(), lr=lr)
-    #     lr_sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=8, verbose=True)
-    #     run([(model, 0, dataloaders, optimizer, lr_sched, args.comp_info)], criterion, num_epochs=int(args.epoch))
-
-    # else:
     model = torch.load(args.load_model)
-    prob_val, val_loss, val_map = val_step(model, 0, dataloaders['val'], 0) 
-    
-    
+    prob_val, val_loss, val_map, actAccuracy,activityIndexes = val_step(model, 0, dataloaders['val'], 0) 
+    numFrames = getNumFrames(args.video)
+    # # print("numframes",numFrames)
+    output_csvResults(activityIndexes,numFrames,val_map,actAccuracy)
 
 
