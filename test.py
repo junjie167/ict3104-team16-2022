@@ -254,7 +254,7 @@ def getNumFrames(videoName):
     return length
 
 def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
-    file = open('./results/result.csv', 'w', encoding='UTF8', newline='')
+    file = open('./results/result.csv', 'w+', encoding='UTF8', newline='')
     # file = open('./data/generatedAnnotations/{model_name}_{video_name}.csv'.format(model_name=model, video_name=video), 'w', encoding='UTF8', newline='')
     activityArr = ["Enter", "Walk","Make_coffee", "Get_water", "Make_coffee", "Use_Drawer", "Make_coffee.Pour_grains", 
     "Use_telephone", "Leave", "Put_something_on_table", "Take_something_off_table" , "Pour.From_kettle", 
