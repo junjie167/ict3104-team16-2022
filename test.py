@@ -6,6 +6,7 @@ import sys
 import torch
 import csv
 import cv2
+import wandb
 import random
 
 
@@ -269,6 +270,13 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
     modelPath = args.load_model.replace('\\', '/')
     model_name = modelPath.rsplit('/', 1)[-1]
     print("MODEL_NAME",model_name)
+    wandb.login()
+    wandb.init(
+        project="HOIHUB_ModelEval",
+        name=f"{model_name} Metrics",
+        config={
+            "model":model_name
+    })
     writer = csv.writer(file)  
     # Write Rows for Model Precision 
     writer.writerow(["Mean Average Precision of Model: ", val_map.item()])
@@ -315,7 +323,11 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
 
     file.close()
     print("csv file output to /result folder")
-
+    data = [[label, val] for (label, val) in zip(activityArr, actAccArr)]
+    table = wandb.Table(data=data, columns = ["Activity", "Mean Precision"])
+    wandb.log({"my_bar_chart_id" : wandb.plot.bar(table, "Activity",
+                                "Mean Precision", title=f"{model_name} Precision on Activities")})
+    wandb.finish()
     return
     
 def val_step(model, gpu, dataloader, epoch):
