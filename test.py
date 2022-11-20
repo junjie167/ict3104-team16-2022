@@ -8,7 +8,7 @@ import csv
 import cv2
 import wandb
 import random
-
+from ModelInterfaces import IModel
 
 
 def str2bool(v):
@@ -248,28 +248,41 @@ def train_step(model, gpu, optimizer, dataloader, epoch):
 
     return train_map, epoch_loss
 
+"""
+Inputs:
+    "videoName": Name of video from args.video
+Output:
+    Returns number of frames of a mp4 video file
+"""
 def getNumFrames(videoName):
     cap = cv2.VideoCapture("./data/video/" + videoName)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     return length
 
-def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
-    file = open('./results/result.csv', 'w+', encoding='UTF8', newline='')
-    # file = open('./data/generatedAnnotations/{model_name}_{video_name}.csv'.format(model_name=model, video_name=video), 'w', encoding='UTF8', newline='')
-    activityArr = ["Enter", "Walk","Make_coffee", "Get_water", "Make_coffee", "Use_Drawer", "Make_coffee.Pour_grains", 
-    "Use_telephone", "Leave", "Put_something_on_table", "Take_something_off_table" , "Pour.From_kettle", 
-    "Stir_coffee/tea", "Drink.From_cup", "Dump_in_trash", "Make_tea", "Make_tea.Boil_water", "Use_cupboard",
-    "Make_tea.Insert_tea_bag" , "Read", "Take_pills", "Use_fridge", "Clean_dishes", "Clean_dishes.Put_something_in_sink",
-    "Eat_snack", "Sit_down", "Watch_TV", "Use_laptop", "Get_up", "Drink.From_bottle", "Pour.From_bottle",
-    "Drink.From_glass", "Lay_down", "Drink.From_can", "Write", "Breakfast", "Breakfast.Spread_jam_or_butter",
-    "Breakfast.Cut_bread", "Breakfast.Eat_at_table", "Breakfast.Take_ham", "Clean_dishes.Dry_up", "Wipe_table",
-    "Cook", "Cook.Cut", "Cook.Use_stove", "Cook.Stir", "Cook.Use_oven", "Clean_dishes.Clean_with_water",
-    "Use_tablet", "Use_glasses", "Pour.From_can"]   
-    actAccArr = []
+"""
+Input:
+    "activityIndexes": array mapping activity indexes
+    "numFrames": Number of frames of target video
+    "val_map": precision of validation mapping
+    "actAccList_tnsr": tensor array of individual action accuracy
+Output:
+    writes a .csv file into ./result folder containing evaluation metrics
+"""
+def generateCSV(activityIndexes,numFrames,val_map,actAccList_tnsr):
     # getting model name from argument file path
     modelPath = args.load_model.replace('\\', '/')
     model_name = modelPath.rsplit('/', 1)[-1]
-    print("MODEL_NAME",model_name)
+    file = open('./results/{}{}.csv'.format(model_name,'_res'), 'w+', encoding='UTF8', newline='')
+    activityArr = []
+    file1 = open('all_labels.txt', 'r')
+    Lines = file1.readlines()
+    # Strips the newline character
+    for line in Lines:
+        act = line.strip()
+        splitArr = act.split()
+        activityArr.append(splitArr[1])
+
+    actAccArr = []
     wandb.login()
     wandb.init(
         project="HOIHUB_ModelEval",
@@ -290,17 +303,13 @@ def output_csvResults(activityIndexes,numFrames,val_map,actAccList_tnsr):
             writer.writerow([activityArr[i], actAccList[i]])
             actAccArr.append(actAccList[i])
 
-    
-
-    # Write Rows for Training Section (loss, epoch,etc?)
+    # Write Rows for Training Section (loss, epoch,etc)
     writer.writerow([])
     writer.writerow(["Trained on","Train m-AP","Tested on","Prediction m-AP"])
-    # To be done
 
-    # Write Rows Video Frame data
+    # Write Rows Video Section
     writer.writerow([])
     writer.writerow(["Event","Start_frame","End_frame","Video_Name","Prediction Accuracy for the video"])
-    # To be done
     currentFrames = 0
     endFrames = 0
     framesPerIndex = numFrames/len(activityIndexes)
@@ -387,7 +396,5 @@ if __name__ == '__main__':
     model = torch.load(args.load_model)
     prob_val, val_loss, val_map, actAccuracy,activityIndexes = val_step(model, 0, dataloaders['val'], 0) 
     numFrames = getNumFrames(args.video)
-    # # print("numframes",numFrames)
-    output_csvResults(activityIndexes,numFrames,val_map,actAccuracy)
-
+    generateCSV(activityIndexes,numFrames,val_map,actAccuracy)
 
