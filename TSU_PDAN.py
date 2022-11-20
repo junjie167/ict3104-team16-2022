@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch
 import numpy as np
+import json
 from ModelInterfaces import IModel
 
 # TODO: fix TSU's code being hard-coded to check command line arguments
@@ -34,7 +35,7 @@ class HOI_PDAN(IModel):
         model = model.cuda()
         self.model = model
 
-        self.output_directory = "./PDAN/"
+        self.output_directory = "./data/inference/PDAN/"
         self.epoch = 0
 
     def PDAN_training_parameters(self, lr: float = 0.0002, comp_info: str = "TSU_CS_RGB_PDAN"):
@@ -56,8 +57,6 @@ class HOI_PDAN(IModel):
         from tqdm import tqdm
         from tqdm.notebook import tqdm_notebook
         for epoch in epoch_range:
-            # print('Epoch {}/{}'.format(epoch, epochs - 1))
-            # print('-' * 10)
             # due to a bug in TQDM, the progress bars must be re-constructed to reset them to zero
             if use_tqdm == "notebook":
                 dataloaders["train"] = tqdm_notebook(train_dataloader, unit='batch', desc='training', leave=False)
@@ -82,43 +81,59 @@ class HOI_PDAN(IModel):
                 self.epoch = epoch
                 yield self.model
 
-    def infer(self, dataloader: DataLoader):
+    def infer(self, dataloader: DataLoader, confidence_threshold: float = 0.5):
         results = HOI.train.eval_model(self.model, dataloader)
         print("eval done, generating report")
         results = {
             video_name: {
-                "actions": self.__compact_result__(values[1])
+                "actions": self.__compact_result__(values[1], confidence_threshold)
             } \
                 for video_name, values in results.items()
         }
-        # TODO: Change path
-        with open("logga.json", mode="w") as logfile:
+        
+        
+        from time import time
+        from pathlib import Path
+        # save to configured output_directory, use epoch time as label
+        filename = Path(self.output_directory, "smarthome_{0}.json".format(int(time())))
+        with open(filename, mode="w") as logfile:
             json.dump(results, fp=logfile)
+
+        return str(filename.resolve())
 
     def evaluate(self, dataloader: DataLoader):
         full_probs, epoch_loss, mAP_acc = HOI.train.val_step(self.model, 0, dataloader, self.epoch)
         return mAP_acc
     
-    def __compact_result__(self, per_class_probs_per_frame: np.ndarray) -> list[dict]:
+    def __compact_result__(self, per_class_probs_per_frame: np.ndarray, confidence_threshold: float) -> list[dict]:
+        """
+            This private function is called during inference.\n
+            This function extracts the class with the highest probability in each video frame,
+            and returns a sparse representation in a format similar to the TSU json files
+            (`smarthome_CS_51.json`, `smarthome_CV_51.json`).
+            This is to allow easy conversion to on-screen captions on the video player,
+            as WebVTT expects you to provide time ranges, not per-frame captions.
+        """
         # TODO: rewrite to show top 3
-        # TODO: exclude low-confidence results?
         actions = list()
-        longest = 0
         top_class = np.argmax(per_class_probs_per_frame, axis=1)
         for class_id in range(self.__num_classes__):
             class_idx = np.where(top_class == class_id)[0]
             if(len(class_idx) == 0):
                 continue
+            # find contiguous regions where class_id is the top_class
+            # by looking for blocks of consecutive frame indexes
+            # see https://stackoverflow.com/a/7353335
             ranges = np.split(class_idx, np.where(np.diff(class_idx) != 1)[0]+1)
             for period in ranges:
-                if len(period) > longest:
-                    longest = len(period)
+                mean_period_confidence = float(np.mean(per_class_probs_per_frame[period[0]:period[-1]+1, class_id]))
+                if mean_period_confidence < confidence_threshold:
+                    continue
                 actions.append({
                     "class": class_id,
                     "start": int(period[0]),
                     "end": int(period[-1]),
-                    "confidence": float(np.mean(per_class_probs_per_frame[period[0]:period[-1]+1, class_id]))
+                    "confidence": mean_period_confidence
                 })
         actions.sort(key=lambda a: a["start"])
-        # print("longest john", longest)
         return actions
