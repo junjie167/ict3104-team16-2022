@@ -13,6 +13,8 @@ permissions:
 jobs:
   github-dependency-review:
     runs-on: ubuntu-latest
+    # the non-OWASP action doesn't work in commit events, only on PRs
+    if: github.event_name == 'pull_request'
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v3
